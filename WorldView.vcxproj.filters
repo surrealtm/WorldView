@@ -54,10 +54,19 @@
     <ClCompile Include="Foundation\src\single_header_libraries.cpp">
       <Filter>Foundation</Filter>
     </ClCompile>
+    <ClCompile Include="src\draw.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Foundation\src\Dependencies\stb_image.h">
       <Filter>Foundation</Filter>
+    </ClInclude>
+    <ClInclude Include="src\draw.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\app.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

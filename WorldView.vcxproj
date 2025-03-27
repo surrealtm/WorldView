@@ -166,10 +166,13 @@
     <ClCompile Include="Foundation\src\string_type.cpp" />
     <ClCompile Include="Foundation\src\win32_specific.cpp" />
     <ClCompile Include="Foundation\src\window.cpp" />
+    <ClCompile Include="src\draw.cpp" />
     <ClCompile Include="src\main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Foundation\src\Dependencies\stb_image.h" />
+    <ClInclude Include="src\app.h" />
+    <ClInclude Include="src\draw.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
