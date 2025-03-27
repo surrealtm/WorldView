@@ -13,10 +13,51 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Foundation">
+      <UniqueIdentifier>{93bf4334-3da1-425d-bb89-53c7a988707f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Foundation\src\window.cpp">
+      <Filter>Foundation</Filter>
+    </ClCompile>
+    <ClCompile Include="Foundation\src\string_type.cpp">
+      <Filter>Foundation</Filter>
+    </ClCompile>
+    <ClCompile Include="Foundation\src\win32_specific.cpp">
+      <Filter>Foundation</Filter>
+    </ClCompile>
+    <ClCompile Include="Foundation\src\foundation.cpp">
+      <Filter>Foundation</Filter>
+    </ClCompile>
+    <ClCompile Include="Foundation\src\concatenator.cpp">
+      <Filter>Foundation</Filter>
+    </ClCompile>
+    <ClCompile Include="Foundation\src\d3d11_layer.cpp">
+      <Filter>Foundation</Filter>
+    </ClCompile>
+    <ClCompile Include="Foundation\src\error.cpp">
+      <Filter>Foundation</Filter>
+    </ClCompile>
+    <ClCompile Include="Foundation\src\file_watcher.cpp">
+      <Filter>Foundation</Filter>
+    </ClCompile>
+    <ClCompile Include="Foundation\src\fileio.cpp">
+      <Filter>Foundation</Filter>
+    </ClCompile>
+    <ClCompile Include="Foundation\src\memutils.cpp">
+      <Filter>Foundation</Filter>
+    </ClCompile>
+    <ClCompile Include="Foundation\src\single_header_libraries.cpp">
+      <Filter>Foundation</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Foundation\src\Dependencies\stb_image.h">
+      <Filter>Foundation</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
