@@ -167,8 +167,8 @@
     <ClCompile Include="Foundation\src\string_type.cpp" />
     <ClCompile Include="Foundation\src\win32_specific.cpp" />
     <ClCompile Include="Foundation\src\window.cpp" />
+    <ClCompile Include="src\app.cpp" />
     <ClCompile Include="src\draw.cpp" />
-    <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\tile.cpp" />
   </ItemGroup>
   <ItemGroup>

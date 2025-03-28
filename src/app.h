@@ -11,13 +11,22 @@
 // --- App
 #include "tile.h"
 
+#define WORLD_SCALE_2D 100
+
 enum Map_Mode {
 	MAP_MODE_2D,
 };
 
 struct Camera {
+	// Projection
 	f32 fov, near, far, ratio;
-	v3f position, rotation;
+
+	// View
+	Coordinate current_center, target_center; // The central coordinates that the camera is looking at
+	f64 zoom_level;
+	f64 current_distance, target_distance;
+
+	// Matrix
 	m4f projection_view;
 };
 

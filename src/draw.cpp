@@ -91,8 +91,8 @@ void destroy_draw_data(App *app) {
 
 
 static inline
-v2f tile_from_world(f64 lat, f64 lon) {
-    return v2f((f32 ) (lon / 180.0), (f32) (lat / 90.0));
+v2f tile_from_coordinate_space(Coordinate coordinate) {
+    return v2f((f32 ) (coordinate.lon / 180.0), (f32) (coordinate.lat / 90.0));
 }
 
 static
@@ -124,7 +124,7 @@ void imm2d_tile_space(const v2f &p0, const v2f &p1, const v2f &p2, const v4f &co
 
 static inline
 void imm2d_world_space(const Coordinate &p0, const Coordinate &p1, const Coordinate &p2, const v4f &color) {
-    imm2d_tile_space(tile_from_world(p0.lat, p0.lon), tile_from_world(p1.lat, p1.lon), tile_from_world(p2.lat, p2.lon), color);
+    imm2d_tile_space(tile_from_coordinate_space(p0), tile_from_coordinate_space(p1), tile_from_coordinate_space(p2), color);
 }
 
 static

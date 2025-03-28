@@ -13,7 +13,7 @@ struct Vertices {
 
 static
 v3f point_to_2d_map(f64 lat, f64 lon) {
-    return { (f32) (lon / 90.0), (f32) (lat / -90.0), 0 };
+    return { (f32) (lon / 90.0) * WORLD_SCALE_2D, (f32) (lat / -90.0) * WORLD_SCALE_2D, 0 };
 }
 
 static

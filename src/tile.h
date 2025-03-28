@@ -2,7 +2,7 @@
 
 #include <foundation.h>
 
-#define TILE_TEXTURE_RESOLUTION 4
+#define TILE_TEXTURE_RESOLUTION 16
 #define TILE_TEXTURE_CHANNELS 4 // D3D11 doesn't support actual RBG, only RGBA
 
 typedef void *G_Handle;
