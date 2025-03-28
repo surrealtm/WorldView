@@ -43,6 +43,7 @@ int main() {
 	app.map_mode = MAP_MODE_2D;
 
 	create_tile(&app, &app.root, app.map_mode, { -90, -180, 90, 180 });
+	subdivide_tile(&app, &app.root);
 
 	while(!app.window.should_close) {
 		Hardware_Time frame_begin = os_get_hardware_time();

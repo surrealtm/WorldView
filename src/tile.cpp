@@ -74,3 +74,24 @@ void destroy_tile(App *app, Tile *tile) {
     tile->texture = null;
     tile->mesh = null;
 }
+
+void subdivide_tile(App *app, Tile *tile) {
+    assert(tile->leaf);
+    tile->leaf = false;
+
+    f64 half_lat   = (tile->box.lat1 - tile->box.lat0) * 0.5;
+    f64 half_lon   = (tile->box.lon1 - tile->box.lon0) * 0.5;
+
+    for(s64 i = 0; i < ARRAY_COUNT(tile->children); ++i) {
+        f64 lat_offset = (f64) (i / 2);
+        f64 lon_offset = (f64) (i % 2);
+
+        Bounding_Box child_box = { tile->box.lat0 + half_lat * (lat_offset + 0),
+                                   tile->box.lon0 + half_lon * (lon_offset + 0),
+                                   tile->box.lat0 + half_lat * (lat_offset + 1),
+                                   tile->box.lon0 + half_lon * (lon_offset + 1) };
+
+        tile->children[i] = (Tile *) app->allocator.allocate(sizeof(Tile));
+        create_tile(app, tile->children[i], app->map_mode, child_box);
+    }
+}

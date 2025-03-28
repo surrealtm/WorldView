@@ -2,7 +2,7 @@
 
 #include <foundation.h>
 
-#define TILE_TEXTURE_RESOLUTION 512
+#define TILE_TEXTURE_RESOLUTION 4
 #define TILE_TEXTURE_CHANNELS 4 // D3D11 doesn't support actual RBG, only RGBA
 
 typedef void *G_Handle;
@@ -32,3 +32,4 @@ struct Tile {
 
 void create_tile(App *app, Tile *tile, Map_Mode map_mode, Bounding_Box box);
 void destroy_tile(App *app, Tile *tile);
+void subdivide_tile(App *app, Tile *tile);
