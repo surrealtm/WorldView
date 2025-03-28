@@ -71,14 +71,14 @@ void setup_draw_data(App *app) {
     allocate_vertex_data(&render_data.imm2d_mesh, IMM2D_BATCH_SIZE * 2, 2);
     allocate_vertex_data(&render_data.imm2d_mesh, IMM2D_BATCH_SIZE * 4, 4);
 
-    render_data.imm2d_positions = (v2f *) Default_Allocator->allocate(IMM2D_BATCH_SIZE * sizeof(v2f));
-    render_data.imm2d_colors    = (v4f *) Default_Allocator->allocate(IMM2D_BATCH_SIZE * sizeof(v4f));
+    render_data.imm2d_positions = (v2f *) app->allocator.allocate(IMM2D_BATCH_SIZE * sizeof(v2f));
+    render_data.imm2d_colors    = (v4f *) app->allocator.allocate(IMM2D_BATCH_SIZE * sizeof(v4f));
     render_data.imm2d_count     = 0;
 }
 
 void destroy_draw_data(App *app) {
-    Default_Allocator->deallocate(render_data.imm2d_positions);
-    Default_Allocator->deallocate(render_data.imm2d_colors);
+    app->allocator.deallocate(render_data.imm2d_positions);
+    app->allocator.deallocate(render_data.imm2d_colors);
 
     destroy_vertex_buffer_array(&render_data.imm2d_mesh);
     destroy_shader(&render_data.imm2d_shader);
@@ -127,14 +127,9 @@ void imm2d_world_space(const Coordinate &p0, const Coordinate &p1, const Coordin
     imm2d_tile_space(tile_from_world(p0.lat, p0.lon), tile_from_world(p1.lat, p1.lon), tile_from_world(p2.lat, p2.lon), color);
 }
 
-void draw_one_frame(App *app) {
-    //
-    // Redraw all required tiles
-    //
-    for(s64 i = 0; i < app->tiles.count; ++i) {
-        Tile *tile = &app->tiles[i];
-        if(!REDRAW_TILES_EVERY_FRAME && !tile->redraw_texture) continue;
-
+static
+void maybe_repaint_tile(Tile *tile) {
+    if(REDRAW_TILES_EVERY_FRAME || tile->repaint) {
         bind_frame_buffer(&render_data.imm2d_fbo);
         clear_frame_buffer(&render_data.imm2d_fbo, 255 / 255.0f, 0 / 255.0f, 0 / 255.0f);
         
@@ -144,8 +139,34 @@ void draw_one_frame(App *app) {
         
         blit_frame_buffer((Texture *) tile->texture, &render_data.imm2d_fbo);
 
-        tile->redraw_texture = false;
+        tile->repaint = false;
     }
+
+    if(!tile->leaf) {
+        for(s64 i = 0; i < ARRAY_COUNT(tile->children); ++i) {
+            maybe_repaint_tile(tile->children[i]);
+        }
+    }
+}
+
+static
+void draw_tile(Tile *tile) {
+    if(tile->leaf) {
+        bind_texture((Texture *) tile->texture, 0);
+        bind_vertex_buffer_array((Vertex_Buffer_Array *) tile->mesh);
+        draw_vertex_buffer_array((Vertex_Buffer_Array *) tile->mesh);
+    } else {
+        for(s64 i = 0; i < ARRAY_COUNT(tile->children); ++i) {
+            draw_tile(tile->children[i]);
+        }
+    }
+}
+
+void draw_one_frame(App *app) {
+    //
+    // Redraw all required tiles
+    //
+    maybe_repaint_tile(&app->root);
 
     //
     // Draw all tiles
@@ -158,38 +179,38 @@ void draw_one_frame(App *app) {
     bind_shader_constant_buffer(&render_data.world_constants_buffer, 0, SHADER_Vertex);
     bind_shader(&render_data.world_shader);
 
-    for(s64 i = 0; i < app->tiles.count; ++i) {
-        Tile *tile = &app->tiles[i];
-
-        bind_texture((Texture *) tile->texture, 0);
-        bind_vertex_buffer_array((Vertex_Buffer_Array *) tile->mesh);
-        draw_vertex_buffer_array((Vertex_Buffer_Array *) tile->mesh);
-    }
+    draw_tile(&app->root);
 
 	swap_d3d11_buffers(&app->window);
 }
 
 
 
-G_Handle create_texture(u8 *pixels, s64 width, s64 height, s64 channels) {
-    Texture *texture = Default_Allocator->New<Texture>();
+G_Handle create_texture(App *app, u8 *pixels, s64 width, s64 height, s64 channels) {
+    Texture *texture = app->allocator.New<Texture>();
     Error_Code error = create_texture_from_memory(texture, pixels, (s32) width, (s32) height, (u8) channels, TEXTURE_FILTER_Linear | TEXTURE_WRAP_Edge);
     maybe_report_error(error);
     return texture;
 }
 
-void destroy_texture(G_Handle handle) {
-    destroy_texture((Texture *) handle);
+G_Handle create_empty_texture(App *app, s64 width, s64 height, s64 channels) {
+    return create_texture(app, null, width, height, channels);
 }
 
-G_Handle create_mesh(f32 *positions, f32 *uvs, s64 vertex_count) {
-    Vertex_Buffer_Array *mesh = Default_Allocator->New<Vertex_Buffer_Array>();
+void destroy_texture(App *app, G_Handle handle) {
+    destroy_texture((Texture *) handle);
+    app->allocator.deallocate(handle);
+}
+
+G_Handle create_mesh(App *app, f32 *positions, f32 *uvs, s64 vertex_count) {
+    Vertex_Buffer_Array *mesh = app->allocator.New<Vertex_Buffer_Array>();
     create_vertex_buffer_array(mesh, VERTEX_BUFFER_Triangles);
     add_vertex_data(mesh, positions, vertex_count * 3, 3, false);
     add_vertex_data(mesh, uvs, vertex_count * 2, 2, false);
     return mesh;
 }
 
-void destroy_mesh(G_Handle handle) {
+void destroy_mesh(App *app, G_Handle handle) {
     destroy_vertex_buffer_array((Vertex_Buffer_Array *) handle);
+    app->allocator.deallocate(handle);
 }

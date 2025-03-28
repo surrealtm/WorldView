@@ -6,6 +6,7 @@
 #include <window.h>
 #include <math/v3.h>
 #include <math/m4.h>
+#include <memutils.h>
 
 // --- App
 #include "tile.h"
@@ -21,9 +22,13 @@ struct Camera {
 };
 
 struct App {
+	Memory_Pool pool;
+	Allocator allocator;
+
 	Window window;
+
 	Camera camera;
 	Map_Mode map_mode;
 
-	Resizable_Array<Tile> tiles;
+	Tile root;
 };

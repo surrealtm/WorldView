@@ -23,8 +23,8 @@ Vertices create_tile_vertices(Map_Mode map_mode, Bounding_Box box) {
     switch(map_mode) {
     case MAP_MODE_2D: {
         result.count     = 6;
-        result.positions = (v3f *) Default_Allocator->allocate(result.count * sizeof(v3f));
-        result.uvs       = (v2f *) Default_Allocator->allocate(result.count * sizeof(v2f));
+        result.positions = (v3f *) temp.allocate(result.count * sizeof(v3f));
+        result.uvs       = (v2f *) temp.allocate(result.count * sizeof(v2f));
 
         result.positions[0] = point_to_2d_map(box.lat0, box.lon0);
         result.positions[1] = point_to_2d_map(box.lat0, box.lon1);
@@ -47,28 +47,30 @@ Vertices create_tile_vertices(Map_Mode map_mode, Bounding_Box box) {
     return result;
 }
 
-static
-void destroy_tile_vertices(Vertices *vertices) {
-    Default_Allocator->deallocate(vertices->positions);
-    Default_Allocator->deallocate(vertices->uvs);
-    vertices->positions = null;
-    vertices->uvs = null;
-    vertices->count = 0;
-}
+void create_tile(App *app, Tile *tile, Map_Mode map_mode, Bounding_Box box) {
+    s64 tmp_mark = mark_temp_allocator();
 
-void create_tile(Tile *tile, Map_Mode map_mode, Bounding_Box box) {
     Vertices vertices = create_tile_vertices(map_mode, box);
 
-    tile->texture = create_texture(null, TILE_TEXTURE_RESOLUTION, TILE_TEXTURE_RESOLUTION, TILE_TEXTURE_CHANNELS);
-    tile->mesh    = create_mesh(vertices.positions[0].values, vertices.uvs[0].values, vertices.count);
-    tile->redraw_texture = true;
+    tile->box     = box;
+    tile->texture = create_empty_texture(app, TILE_TEXTURE_RESOLUTION, TILE_TEXTURE_RESOLUTION, TILE_TEXTURE_CHANNELS);
+    tile->mesh    = create_mesh(app, vertices.positions[0].values, vertices.uvs[0].values, vertices.count);
+    tile->repaint = true;
+    tile->leaf    = true;
 
-    destroy_tile_vertices(&vertices);
+    release_temp_allocator(tmp_mark);
 }
 
-void destroy_tile(Tile *tile) {
-    destroy_texture(tile->texture);
-    destroy_mesh(tile->mesh);
+void destroy_tile(App *app, Tile *tile) {
+    if(!tile->leaf) {
+        for(s64 i = 0; i < ARRAY_COUNT(tile->children); ++i) {
+            destroy_tile(app, tile->children[i]);
+            app->allocator.deallocate(tile->children[i]);
+        }
+    }
+
+    destroy_texture(app, tile->texture);
+    destroy_mesh(app, tile->mesh);
     tile->texture = null;
     tile->mesh = null;
 }

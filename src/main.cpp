@@ -31,16 +31,18 @@ int main() {
 	App app;
 	os_enable_high_resolution_clock();
 	os_set_working_directory(os_get_executable_directory());
+	create_temp_allocator(4 * ONE_MEGABYTE);
+
+	app.pool.create(128 * ONE_MEGABYTE);
+	app.allocator = app.pool.allocator();
+
 	create_window(&app.window, "World View"_s);
     setup_draw_data(&app);
 	show_window(&app.window);
 
 	app.map_mode = MAP_MODE_2D;
 
-	{
-		Tile *tile = app.tiles.push();
-		create_tile(tile, app.map_mode, { -90, -180, 90, 180 });
-	}
+	create_tile(&app, &app.root, app.map_mode, { -90, -180, 90, 180 });
 
 	while(!app.window.should_close) {
 		Hardware_Time frame_begin = os_get_hardware_time();
@@ -52,13 +54,12 @@ int main() {
 		os_sleep_to_tick_rate(frame_begin, frame_end, FRAME_RATE);
 	}
 
-	{
-		for(s64 i = 0; i < app.tiles.count; ++i) {
-			destroy_tile(&app.tiles[i]);
-		}
-	}
+	destroy_tile(&app, &app.root);
 
 	destroy_draw_data(&app);
 	destroy_window(&app.window);
+	app.pool.destroy();
+	destroy_temp_allocator();
+
 	return 0;
 }

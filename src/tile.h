@@ -6,6 +6,7 @@
 #define TILE_TEXTURE_CHANNELS 4 // D3D11 doesn't support actual RBG, only RGBA
 
 typedef void *G_Handle;
+struct App;
 enum Map_Mode;
 
 struct Coordinate {
@@ -19,11 +20,15 @@ struct Bounding_Box {
 };
 
 struct Tile {
+    Bounding_Box box;
+    Tile *children[4];
+
     G_Handle texture;
     G_Handle mesh;
 
-    b8 redraw_texture;
+    b8 repaint;
+    b8 leaf;
 };
 
-void create_tile(Tile *tile, Map_Mode map_mode, Bounding_Box box);
-void destroy_tile(Tile *tile);
+void create_tile(App *app, Tile *tile, Map_Mode map_mode, Bounding_Box box);
+void destroy_tile(App *app, Tile *tile);
