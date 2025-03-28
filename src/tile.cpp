@@ -59,8 +59,9 @@ void destroy_tile_vertices(Vertices *vertices) {
 void create_tile(Tile *tile, Map_Mode map_mode, Bounding_Box box) {
     Vertices vertices = create_tile_vertices(map_mode, box);
 
-    tile->texture = create_texture(null, TILE_TEXTURE_RESOLUTION, TILE_TEXTURE_RESOLUTION, 0);
+    tile->texture = create_texture(null, TILE_TEXTURE_RESOLUTION, TILE_TEXTURE_RESOLUTION, TILE_TEXTURE_CHANNELS);
     tile->mesh    = create_mesh(vertices.positions[0].values, vertices.uvs[0].values, vertices.count);
+    tile->redraw_texture = true;
 
     destroy_tile_vertices(&vertices);
 }

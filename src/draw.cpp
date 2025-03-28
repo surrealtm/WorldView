@@ -16,7 +16,8 @@ struct Tile_Shader_Constants {
 };
 
 struct Render_Data {
-    Frame_Buffer *fbo;
+    Frame_Buffer *default_fbo;
+    Frame_Buffer tile_fbo;
     Shader tile_shader;
     Shader_Constant_Buffer tile_constants_buffer;
 };
@@ -40,19 +41,34 @@ void setup_draw_data(App *app) {
 
     create_shader_constant_buffer(&render_data.tile_constants_buffer, sizeof(Tile_Shader_Constants));
     
-	render_data.fbo = get_default_frame_buffer(&app->window);
+	render_data.default_fbo = get_default_frame_buffer(&app->window);
+    create_frame_buffer(&render_data.tile_fbo, 1);
+    create_frame_buffer_color_attachment(&render_data.tile_fbo, TILE_TEXTURE_RESOLUTION, TILE_TEXTURE_RESOLUTION);
 }
 
 void destroy_draw_data(App *app) {
     destroy_shader_constant_buffer(&render_data.tile_constants_buffer);
     destroy_shader(&render_data.tile_shader);
+    destroy_frame_buffer(&render_data.tile_fbo);
     destroy_d3d11_context(&app->window);
 }
 
 
 
 void draw_one_frame(App *app) {
-    clear_frame_buffer(render_data.fbo, 50 / 255.0f, 96 / 255.0f, 140 / 255.0f);
+    //
+    // Redraw all required tiles
+    //
+    for(s64 i = 0; i < app->tiles.count; ++i) {
+        Tile *tile = &app->tiles[i];
+        if(!tile->redraw_texture) continue;
+
+        bind_frame_buffer(&render_data.tile_fbo);
+        clear_frame_buffer(&render_data.tile_fbo, 255 / 255.0f, 0 / 255.0f, 0 / 255.0f);
+        blit_frame_buffer((Texture *) tile->texture, &render_data.tile_fbo);
+
+        tile->redraw_texture = false;
+    }
 
     //
     // Draw all tiles
@@ -60,7 +76,8 @@ void draw_one_frame(App *app) {
     Tile_Shader_Constants tile_shader_constants;
     tile_shader_constants.projection_view = app->camera.projection_view;
     update_shader_constant_buffer(&render_data.tile_constants_buffer, &tile_shader_constants);
-    bind_frame_buffer(render_data.fbo);
+    bind_frame_buffer(render_data.default_fbo);
+    clear_frame_buffer(render_data.default_fbo, 50 / 255.0f, 96 / 255.0f, 140 / 255.0f);
     bind_shader_constant_buffer(&render_data.tile_constants_buffer, 0, SHADER_Vertex);
     bind_shader(&render_data.tile_shader);
 
@@ -79,7 +96,8 @@ void draw_one_frame(App *app) {
 
 G_Handle create_texture(u8 *pixels, s64 width, s64 height, s64 channels) {
     Texture *texture = Default_Allocator->New<Texture>();
-    create_texture_from_memory(texture, pixels, (s32) width, (s32) height, (u8) channels, TEXTURE_FILTER_Linear | TEXTURE_WRAP_Edge);
+    Error_Code error = create_texture_from_memory(texture, pixels, (s32) width, (s32) height, (u8) channels, TEXTURE_FILTER_Linear | TEXTURE_WRAP_Edge);
+    foundation_assert(error == Success);
     return texture;
 }
 
