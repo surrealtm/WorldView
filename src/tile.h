@@ -8,6 +8,11 @@
 typedef void *G_Handle;
 enum Map_Mode;
 
+struct Coordinate {
+    f64 lat;
+    f64 lon;
+};
+
 struct Bounding_Box {
     f64 lat0, lon0;
     f64 lat1, lon1;  
