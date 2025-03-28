@@ -4,11 +4,26 @@
 
 // --- Foundation
 #include <window.h>
+#include <math/v3.h>
+#include <math/m4.h>
 
 // --- App
-#include "draw.h"
+#include "tile.h"
+
+enum Map_Mode {
+	MAP_MODE_2D,
+};
+
+struct Camera {
+	f32 fov, near, far, ratio;
+	v3f position, rotation;
+	m4f projection_view;
+};
 
 struct App {
 	Window window;
-    Renderer renderer;
+	Camera camera;
+	Map_Mode map_mode;
+
+	Resizable_Array<Tile> tiles;
 };

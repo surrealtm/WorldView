@@ -1,17 +1,14 @@
 #pragma once
 
-#include <d3d11_layer.h>
-#include <math/m4.h>
-
 struct App;
+typedef void *G_Handle; // Graphics Handle
 
-struct Renderer {
-    Frame_Buffer *fbo;
-    m4f projection;
-    m4f view;
-};
-
-void create_renderer(App *app);
-void destroy_renderer(App *app);
+void setup_draw_data(App *app);
+void destroy_draw_data(App *app);
 
 void draw_one_frame(App *app);
+
+G_Handle create_texture(u8 *pixels, s64 width, s64 height, s64 channels);
+void destroy_texture(G_Handle handle);
+G_Handle create_mesh(f32 *positions, f32 *uvs, s64 count);
+void destroy_mesh(G_Handle handle);
