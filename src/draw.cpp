@@ -91,8 +91,15 @@ void destroy_draw_data(App *app) {
 
 
 static inline
-v2f tile_from_coordinate_space(Coordinate coordinate) {
-    return v2f((f32 ) (coordinate.lon / 180.0), (f32) (coordinate.lat / 90.0));
+v4f color_from_coordinate(const Coordinate &coord) {
+    return v4f{ (f32) ((coord.lon + 180.0) / 360.0), (f32) ((coord.lat + 90.0) / 180.0), 0.0, 1.0 };
+}
+
+static inline
+v2f tile_from_coordinate_space(Tile *tile, const Coordinate &coord) {
+    return v2f(
+        (f32) ((coord.lon - tile->box.lon0) / (tile->box.lon1 - tile->box.lon0) * 2.0 - 1.0),
+        (f32) (1.0 - (coord.lat - tile->box.lat0) / (tile->box.lat1 - tile->box.lat0) * 2.0));
 }
 
 static
@@ -105,6 +112,21 @@ void flush_imm2d() {
     draw_vertex_buffer_array(&render_data.imm2d_mesh);
 
     render_data.imm2d_count = 0;
+}
+
+static
+void imm2d_tile_space(const v2f &p0, const v2f &p1, const v2f &p2, const v4f &c0, const v4f &c1, const v4f &c2) {
+    if(render_data.imm2d_count + 3 > IMM2D_BATCH_SIZE) flush_imm2d();
+
+    render_data.imm2d_positions[render_data.imm2d_count + 0] = p0;
+    render_data.imm2d_positions[render_data.imm2d_count + 1] = p1;
+    render_data.imm2d_positions[render_data.imm2d_count + 2] = p2;
+
+    render_data.imm2d_colors[render_data.imm2d_count + 0] = c0;
+    render_data.imm2d_colors[render_data.imm2d_count + 1] = c1;
+    render_data.imm2d_colors[render_data.imm2d_count + 2] = c2;
+
+    render_data.imm2d_count += 3;
 }
 
 static
@@ -123,8 +145,13 @@ void imm2d_tile_space(const v2f &p0, const v2f &p1, const v2f &p2, const v4f &co
 }
 
 static inline
-void imm2d_world_space(const Coordinate &p0, const Coordinate &p1, const Coordinate &p2, const v4f &color) {
-    imm2d_tile_space(tile_from_coordinate_space(p0), tile_from_coordinate_space(p1), tile_from_coordinate_space(p2), color);
+void imm2d_coordinate_space(Tile *tile, const Coordinate &p0, const Coordinate &p1, const Coordinate &p2, const v4f &color) {
+    imm2d_tile_space(tile_from_coordinate_space(tile, p0), tile_from_coordinate_space(tile, p1), tile_from_coordinate_space(tile, p2), color);
+}
+
+static inline
+void imm2d_coordinate_space(Tile *tile, const Coordinate &p0, const Coordinate &p1, const Coordinate &p2, const v4f &c0, const v4f &c1, const v4f &c2) {
+    imm2d_tile_space(tile_from_coordinate_space(tile, p0), tile_from_coordinate_space(tile, p1), tile_from_coordinate_space(tile, p2), c0, c1, c2);
 }
 
 static
@@ -133,8 +160,18 @@ void maybe_repaint_tile(Tile *tile) {
         bind_frame_buffer(&render_data.imm2d_fbo);
         clear_frame_buffer(&render_data.imm2d_fbo, 255 / 255.0f, 0 / 255.0f, 0 / 255.0f);
         
-        imm2d_world_space(Coordinate{ 90, -180 }, Coordinate{ 90, 180 }, Coordinate{ -90, -180 }, v4f(1, 1, 1, 1));
-        imm2d_world_space(Coordinate{ -90, -180 }, Coordinate{ 90, 180 }, Coordinate{ -90, 180 }, v4f(0, 0, 0, 1 ));
+        Coordinate p0{ tile->box.lat0, tile->box.lon0 };
+        Coordinate p1{ tile->box.lat0, tile->box.lon1 };
+        Coordinate p2{ tile->box.lat1, tile->box.lon0 };
+        Coordinate p3{ tile->box.lat1, tile->box.lon1 };
+
+        v4f c0 = color_from_coordinate(p0);
+        v4f c1 = color_from_coordinate(p1);
+        v4f c2 = color_from_coordinate(p2);
+        v4f c3 = color_from_coordinate(p3);
+
+        imm2d_coordinate_space(tile, p0, p1, p2, c0, c1, c2);
+        imm2d_coordinate_space(tile, p1, p3, p2, c1, c3, c2);
         flush_imm2d();
         
         blit_frame_buffer((Texture *) tile->texture, &render_data.imm2d_fbo);
@@ -188,7 +225,14 @@ void draw_one_frame(App *app) {
 
 G_Handle create_texture(App *app, u8 *pixels, s64 width, s64 height, s64 channels) {
     Texture *texture = app->allocator.New<Texture>();
-    Error_Code error = create_texture_from_memory(texture, pixels, (s32) width, (s32) height, (u8) channels, TEXTURE_FILTER_Linear | TEXTURE_WRAP_Edge);
+
+    //
+    // Choosing the appropriate texture filter here wilmight be a bit tough.
+    // When having interpolated data across the entire sphere, we'd get visible seems with linear interpolation
+    //   because the texture doesn't know to interpolate to the nearest pixel of the other texture obviously.
+    // However, nearest interpolation doesn't look all that great either...
+    //
+    Error_Code error = create_texture_from_memory(texture, pixels, (s32) width, (s32) height, (u8) channels, TEXTURE_FILTER_Nearest | TEXTURE_WRAP_Edge);
     maybe_report_error(error);
     return texture;
 }

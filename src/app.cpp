@@ -107,8 +107,12 @@ void do_one_frame(App *app) {
 		//
 
 		lerp(&app->camera.current_center.lat, app->camera.target_center.lat, INTERP_SPEED);
-		lerp_with_wrap(&app->camera.current_center.lon, app->camera.target_center.lon, INTERP_SPEED, -180, 180);
-		lerp(&app->camera.current_distance,   app->camera.target_distance, INTERP_SPEED);
+		
+		switch(app->map_mode) {
+		case MAP_MODE_2D: lerp(&app->camera.current_center.lon, app->camera.target_center.lon, INTERP_SPEED); break;
+		case MAP_MODE_3D: lerp_with_wrap(&app->camera.current_center.lon, app->camera.target_center.lon, INTERP_SPEED, -180, 180); break;
+		}
+		lerp(&app->camera.current_distance, app->camera.target_distance, INTERP_SPEED);
 
 		app->camera.current_center.lat = clamp(app->camera.current_center.lat, -90.0, 90.0);
 		app->camera.current_center.lon = clamp(app->camera.current_center.lon, -180.0, 180.0);
@@ -155,7 +159,7 @@ int main() {
     setup_draw_data(&app);
 	show_window(&app.window);
 
-	app.map_mode = MAP_MODE_3D;
+	app.map_mode = MAP_MODE_2D;
 	app.camera.target_center    = Coordinate{ 0, 0 };
 	app.camera.zoom_level       = 0.5;
 	app.camera.target_distance  = 0;
@@ -163,8 +167,8 @@ int main() {
 	app.camera.current_distance = app.camera.target_distance;
 
 	create_tile(&app, &app.root, app.map_mode, { -90, -180, 90, 180 });
-	subdivide_tile(&app, &app.root);
-	subdivide_tile(&app, app.root.children[0]);
+	//subdivide_tile(&app, &app.root);
+	//subdivide_tile(&app, app.root.children[0]);
 
 	while(!app.window.should_close) {
 		Hardware_Time frame_begin = os_get_hardware_time();

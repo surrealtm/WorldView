@@ -14,7 +14,7 @@ struct Vertices {
 
 static
 v3f d2_world_from_coordinate_space(f64 lat, f64 lon) {
-    return { (f32) (lon / 90.0) * WORLD_SCALE_2D, (f32) (lat / -90.0) * WORLD_SCALE_2D, 0 };
+    return { (f32) (lon / 90.0) * WORLD_SCALE_2D, (f32) (lat / 90.0) * WORLD_SCALE_2D, 0 };
 }
 
 static
@@ -41,11 +41,11 @@ Vertices create_tile_vertices(Map_Mode map_mode, Bounding_Box box) {
         p3 = d2_world_from_coordinate_space(box.lat1, box.lon1);
 
         result.positions[0] = p0;
-        result.positions[1] = p1;
-        result.positions[2] = p2;
+        result.positions[1] = p2;
+        result.positions[2] = p1;
 
-        result.positions[3] = p2;
-        result.positions[4] = p1;
+        result.positions[3] = p1;
+        result.positions[4] = p2;
         result.positions[5] = p3;
 
         result.uvs[0] = v2f(0, 0);
@@ -119,6 +119,8 @@ Vertices create_tile_vertices(Map_Mode map_mode, Bounding_Box box) {
 }
 
 void create_tile(App *app, Tile *tile, Map_Mode map_mode, Bounding_Box box) {
+    printf("Creating tile: %f, %f -> %f, %f\n", box.lat0, box.lon0, box.lat1, box.lon1);
+
     s64 tmp_mark = mark_temp_allocator();
 
     Vertices vertices = create_tile_vertices(map_mode, box);
