@@ -29,6 +29,8 @@ struct Camera {
 	f64 current_distance, target_distance;
 
 	// Matrix
+	m4f projection;
+	m4f view;
 	m4f projection_view;
 };
 

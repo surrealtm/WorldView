@@ -97,7 +97,7 @@ Vertices create_tile_vertices(Map_Mode map_mode, Bounding_Box box) {
                 result.positions[idx + 4] = p2;
                 result.positions[idx + 5] = p3;
 
-                v2f uv0, uv1, uv2, uv3;
+                v2f uv0, uv1, uv2, uv3; // @Incomplete: Adjust these UVS according to the equirectangular projection
                 uv0 = v2f((f32) t0, (f32) u0);
                 uv1 = v2f((f32) t0, (f32) u1);
                 uv2 = v2f((f32) t1, (f32) u0);
