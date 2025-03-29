@@ -12,9 +12,11 @@
 #include "tile.h"
 
 #define WORLD_SCALE_2D 100
+#define WORLD_SCALE_3D 10
 
 enum Map_Mode {
 	MAP_MODE_2D,
+	MAP_MODE_3D,
 };
 
 struct Camera {

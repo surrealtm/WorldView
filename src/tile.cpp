@@ -1,3 +1,4 @@
+#include <math/maths.h>
 #include <math/v2.h>
 #include <math/v3.h>
 
@@ -12,8 +13,15 @@ struct Vertices {
 };
 
 static
-v3f point_to_2d_map(f64 lat, f64 lon) {
+v3f d2_world_from_coordinate_space(f64 lat, f64 lon) {
     return { (f32) (lon / 90.0) * WORLD_SCALE_2D, (f32) (lat / -90.0) * WORLD_SCALE_2D, 0 };
+}
+
+static
+v3f d3_world_from_coordinate_space(f64 lat, f64 lon) {
+    f64 theta = degrees_to_radians(lon);
+    f64 sigma = degrees_to_radians(lat);
+    return { (f32) (sin(theta) * cos(sigma) * WORLD_SCALE_3D), (f32) (sin(sigma) * WORLD_SCALE_3D), (f32) (cos(theta) * cos(sigma) * WORLD_SCALE_3D) };
 }
 
 static
@@ -26,13 +34,19 @@ Vertices create_tile_vertices(Map_Mode map_mode, Bounding_Box box) {
         result.positions = (v3f *) temp.allocate(result.count * sizeof(v3f));
         result.uvs       = (v2f *) temp.allocate(result.count * sizeof(v2f));
 
-        result.positions[0] = point_to_2d_map(box.lat0, box.lon0);
-        result.positions[1] = point_to_2d_map(box.lat0, box.lon1);
-        result.positions[2] = point_to_2d_map(box.lat1, box.lon0);
+        v3f p0, p1, p2, p3;
+        p0 = d2_world_from_coordinate_space(box.lat0, box.lon0);
+        p1 = d2_world_from_coordinate_space(box.lat0, box.lon1);
+        p2 = d2_world_from_coordinate_space(box.lat1, box.lon0);
+        p3 = d2_world_from_coordinate_space(box.lat1, box.lon1);
 
-        result.positions[3] = point_to_2d_map(box.lat1, box.lon0);
-        result.positions[4] = point_to_2d_map(box.lat0, box.lon1);
-        result.positions[5] = point_to_2d_map(box.lat1, box.lon1);
+        result.positions[0] = p0;
+        result.positions[1] = p1;
+        result.positions[2] = p2;
+
+        result.positions[3] = p2;
+        result.positions[4] = p1;
+        result.positions[5] = p3;
 
         result.uvs[0] = v2f(0, 0);
         result.uvs[1] = v2f(0, 1);
@@ -41,6 +55,63 @@ Vertices create_tile_vertices(Map_Mode map_mode, Bounding_Box box) {
         result.uvs[3] = v2f(1, 0);
         result.uvs[4] = v2f(0, 1);
         result.uvs[5] = v2f(1, 1);
+    } break;
+
+    case MAP_MODE_3D: {
+        const s64 SEGMENTS = 32;
+
+        result.count     = SEGMENTS * SEGMENTS * 6;
+        result.positions = (v3f *) temp.allocate(result.count * sizeof(v3f));
+        result.uvs       = (v2f *) temp.allocate(result.count * sizeof(v2f));
+
+        for(s64 i0 = 0; i0 < SEGMENTS; ++i0) {
+            s64 i1 = i0 + 1;
+
+            f64 t0 = (f64) i0 / (f64) SEGMENTS;
+            f64 t1 = (f64) i1 / (f64) SEGMENTS;
+
+            for(s64 j0 = 0; j0 < SEGMENTS; ++j0) {
+                s64 j1 = j0 + 1;
+
+                s64 idx = (i0 * SEGMENTS + j0) * 6;
+
+                f64 u0 = (f64) j0 / (f64) SEGMENTS;
+                f64 u1 = (f64) j1 / (f64) SEGMENTS;
+
+                f64 lat0 = box.lat0 + t0 * (box.lat1 - box.lat0);
+                f64 lat1 = box.lat0 + t1 * (box.lat1 - box.lat0);
+                f64 lon0 = box.lon0 + u0 * (box.lon1 - box.lon0);
+                f64 lon1 = box.lon0 + u1 * (box.lon1 - box.lon0);
+
+                v3f p0, p1, p2, p3;
+                p0 = d3_world_from_coordinate_space(lat0, lon0);
+                p1 = d3_world_from_coordinate_space(lat0, lon1);
+                p2 = d3_world_from_coordinate_space(lat1, lon0);
+                p3 = d3_world_from_coordinate_space(lat1, lon1);
+
+                result.positions[idx + 0] = p0;
+                result.positions[idx + 1] = p2;
+                result.positions[idx + 2] = p1;
+
+                result.positions[idx + 3] = p1;
+                result.positions[idx + 4] = p2;
+                result.positions[idx + 5] = p3;
+
+                v2f uv0, uv1, uv2, uv3;
+                uv0 = v2f((f32) t0, (f32) u0);
+                uv1 = v2f((f32) t0, (f32) u1);
+                uv2 = v2f((f32) t1, (f32) u0);
+                uv3 = v2f((f32) t1, (f32) u1);
+
+                result.uvs[idx + 0] = uv0;
+                result.uvs[idx + 1] = uv2;
+                result.uvs[idx + 2] = uv1;
+                
+                result.uvs[idx + 3] = uv1;
+                result.uvs[idx + 4] = uv2;
+                result.uvs[idx + 5] = uv3;
+            }
+        }
     } break;
     }
 
