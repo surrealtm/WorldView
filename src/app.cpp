@@ -52,6 +52,20 @@ void do_one_frame(App *app) {
 	update_window(&app->window);
 
 	//
+	// Update the mode
+	//
+	if(app->window.keys[KEY_Tab] & KEY_Pressed) {
+		switch(app->map_mode) {
+		case MAP_MODE_2D: app->map_mode = MAP_MODE_3D; break;
+		case MAP_MODE_3D: app->map_mode = MAP_MODE_2D; break;
+		}
+
+		app->root.state = TILE_Requires_Regeneration;
+	}
+
+	maybe_regenerate_tiles(app, &app->root);
+
+	//
 	// Update the camera
 	//
 	{
@@ -159,16 +173,16 @@ int main() {
     setup_draw_data(&app);
 	show_window(&app.window);
 
-	app.map_mode = MAP_MODE_2D;
+	app.map_mode = MAP_MODE_3D;
 	app.camera.target_center    = Coordinate{ 0, 0 };
 	app.camera.zoom_level       = 0.5;
 	app.camera.target_distance  = 0;
 	app.camera.current_center   = app.camera.target_center;
 	app.camera.current_distance = app.camera.target_distance;
 
-	create_tile(&app, &app.root, app.map_mode, { -90, -180, 90, 180 });
-	//subdivide_tile(&app, &app.root);
-	//subdivide_tile(&app, app.root.children[0]);
+	create_tile(&app, &app.root, Bounding_Box{ -90, -180, 90, 180 });
+	subdivide_tile(&app, &app.root);
+	subdivide_tile(&app, app.root.children[0]);
 
 	while(!app.window.should_close) {
 		Hardware_Time frame_begin = os_get_hardware_time();
@@ -180,7 +194,7 @@ int main() {
 		os_sleep_to_tick_rate(frame_begin, frame_end, FRAME_RATE);
 	}
 
-	destroy_tile(&app, &app.root);
+	destroy_tile(&app, &app.root, true);
 
 	destroy_draw_data(&app);
 	destroy_window(&app.window);

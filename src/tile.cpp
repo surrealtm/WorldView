@@ -98,10 +98,10 @@ Vertices create_tile_vertices(Map_Mode map_mode, Bounding_Box box) {
                 result.positions[idx + 5] = p3;
 
                 v2f uv0, uv1, uv2, uv3; // @Incomplete: Adjust these UVS according to the equirectangular projection
-                uv0 = v2f((f32) t0, (f32) u0);
-                uv1 = v2f((f32) t0, (f32) u1);
-                uv2 = v2f((f32) t1, (f32) u0);
-                uv3 = v2f((f32) t1, (f32) u1);
+                uv0 = v2f((f32) u0, (f32) t0);
+                uv1 = v2f((f32) u0, (f32) t1);
+                uv2 = v2f((f32) u1, (f32) t0);
+                uv3 = v2f((f32) u1, (f32) t1);
 
                 result.uvs[idx + 0] = uv0;
                 result.uvs[idx + 1] = uv2;
@@ -118,34 +118,35 @@ Vertices create_tile_vertices(Map_Mode map_mode, Bounding_Box box) {
     return result;
 }
 
-void create_tile(App *app, Tile *tile, Map_Mode map_mode, Bounding_Box box) {
-    printf("Creating tile: %f, %f -> %f, %f\n", box.lat0, box.lon0, box.lat1, box.lon1);
-
+void create_tile(App *app, Tile *tile, Bounding_Box box) {
     s64 tmp_mark = mark_temp_allocator();
 
-    Vertices vertices = create_tile_vertices(map_mode, box);
+    Vertices vertices = create_tile_vertices(app->map_mode, box);
 
     tile->box     = box;
     tile->texture = create_empty_texture(app, TILE_TEXTURE_RESOLUTION, TILE_TEXTURE_RESOLUTION, TILE_TEXTURE_CHANNELS);
     tile->mesh    = create_mesh(app, vertices.positions[0].values, vertices.uvs[0].values, vertices.count);
-    tile->repaint = true;
+    tile->state   = TILE_Requires_Repainting;
     tile->leaf    = true;
 
     release_temp_allocator(tmp_mark);
 }
 
-void destroy_tile(App *app, Tile *tile) {
-    if(!tile->leaf) {
+void destroy_tile(App *app, Tile *tile, bool recursive) {
+    if(!tile->leaf && recursive) {
         for(s64 i = 0; i < ARRAY_COUNT(tile->children); ++i) {
-            destroy_tile(app, tile->children[i]);
+            destroy_tile(app, tile->children[i], recursive);
             app->allocator.deallocate(tile->children[i]);
         }
     }
 
-    destroy_texture(app, tile->texture);
-    destroy_mesh(app, tile->mesh);
-    tile->texture = null;
-    tile->mesh = null;
+    if(tile->state != TILE_Empty) {
+        destroy_texture(app, tile->texture);
+        destroy_mesh(app, tile->mesh);
+        tile->texture = null;
+        tile->mesh    = null;
+        tile->state   = TILE_Empty;
+    }
 }
 
 void subdivide_tile(App *app, Tile *tile) {
@@ -165,6 +166,30 @@ void subdivide_tile(App *app, Tile *tile) {
                                    tile->box.lon0 + half_lon * (lon_offset + 1) };
 
         tile->children[i] = (Tile *) app->allocator.allocate(sizeof(Tile));
-        create_tile(app, tile->children[i], app->map_mode, child_box);
+        create_tile(app, tile->children[i], child_box);
+    }
+
+    destroy_tile(app, tile, false);
+}
+
+void maybe_regenerate_tiles(App *app, Tile *tile) {
+    if(tile->leaf) {
+        if(tile->state == TILE_Empty) {
+            create_tile(app, tile, tile->box);
+        } else if(tile->state == TILE_Requires_Regeneration) {
+            destroy_tile(app, tile, false);
+            create_tile(app, tile, tile->box);
+        }
+    } else {
+        if(tile->state == TILE_Requires_Regeneration) {
+            for(s64 i = 0; i < ARRAY_COUNT(tile->children); ++i) {
+                tile->children[i]->state = TILE_Requires_Regeneration;
+                maybe_regenerate_tiles(app, tile->children[i]);
+            }
+    
+            tile->state = TILE_Empty;
+        } else {
+            assert(tile->state == TILE_Empty);
+        }
     }
 }

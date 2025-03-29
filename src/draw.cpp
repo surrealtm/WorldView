@@ -155,8 +155,8 @@ void imm2d_coordinate_space(Tile *tile, const Coordinate &p0, const Coordinate &
 }
 
 static
-void maybe_repaint_tile(Tile *tile) {
-    if(REDRAW_TILES_EVERY_FRAME || tile->repaint) {
+void maybe_repaint_tiles(Tile *tile) {
+    if((REDRAW_TILES_EVERY_FRAME && tile->leaf)|| tile->state == TILE_Requires_Repainting) {
         bind_frame_buffer(&render_data.imm2d_fbo);
         clear_frame_buffer(&render_data.imm2d_fbo, 255 / 255.0f, 0 / 255.0f, 0 / 255.0f);
         
@@ -176,25 +176,25 @@ void maybe_repaint_tile(Tile *tile) {
         
         blit_frame_buffer((Texture *) tile->texture, &render_data.imm2d_fbo);
 
-        tile->repaint = false;
+        tile->state = TILE_Valid;
     }
 
     if(!tile->leaf) {
         for(s64 i = 0; i < ARRAY_COUNT(tile->children); ++i) {
-            maybe_repaint_tile(tile->children[i]);
+            maybe_repaint_tiles(tile->children[i]);
         }
     }
 }
 
 static
-void draw_tile(Tile *tile) {
+void draw_tiles(Tile *tile) {
     if(tile->leaf) {
         bind_texture((Texture *) tile->texture, 0);
         bind_vertex_buffer_array((Vertex_Buffer_Array *) tile->mesh);
         draw_vertex_buffer_array((Vertex_Buffer_Array *) tile->mesh);
     } else {
         for(s64 i = 0; i < ARRAY_COUNT(tile->children); ++i) {
-            draw_tile(tile->children[i]);
+            draw_tiles(tile->children[i]);
         }
     }
 }
@@ -203,7 +203,7 @@ void draw_one_frame(App *app) {
     //
     // Redraw all required tiles
     //
-    maybe_repaint_tile(&app->root);
+    maybe_repaint_tiles(&app->root);
 
     //
     // Draw all tiles
@@ -216,7 +216,7 @@ void draw_one_frame(App *app) {
     bind_shader_constant_buffer(&render_data.world_constants_buffer, 0, SHADER_Vertex);
     bind_shader(&render_data.world_shader);
 
-    draw_tile(&app->root);
+    draw_tiles(&app->root);
 
 	swap_d3d11_buffers(&app->window);
 }
