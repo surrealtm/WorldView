@@ -1,7 +1,10 @@
+// --- Foundation
 #include <math/maths.h>
 #include <math/v2.h>
 #include <math/v3.h>
+#include <os_specific.h>
 
+// --- App
 #include "tile.h"
 #include "app.h"
 #include "draw.h"
@@ -119,6 +122,7 @@ Vertices create_tile_vertices(Map_Mode map_mode, Bounding_Box box) {
 }
 
 void create_tile(App *app, Tile *tile, Bounding_Box box) {
+    Hardware_Time start = os_get_hardware_time();
     s64 tmp_mark = mark_temp_allocator();
 
     Vertices vertices = create_tile_vertices(app->map_mode, box);
@@ -130,9 +134,13 @@ void create_tile(App *app, Tile *tile, Bounding_Box box) {
     tile->leaf    = true;
 
     release_temp_allocator(tmp_mark);
+    Hardware_Time end = os_get_hardware_time();
+    log(LOG_Debug, "Created tile [%f;%f -> %f;%f]: %fms.", box.lat0, box.lon0, box.lat1, box.lon1, os_convert_hardware_time(end - start, Milliseconds));
 }
 
 void destroy_tile(App *app, Tile *tile, bool recursive) {
+    Hardware_Time start = os_get_hardware_time();
+    
     if(!tile->leaf && recursive) {
         for(s64 i = 0; i < ARRAY_COUNT(tile->children); ++i) {
             destroy_tile(app, tile->children[i], recursive);
@@ -147,6 +155,9 @@ void destroy_tile(App *app, Tile *tile, bool recursive) {
         tile->mesh    = null;
         tile->state   = TILE_Empty;
     }
+    
+    Hardware_Time end = os_get_hardware_time();
+    log(LOG_Debug, "Destroyed tile [%f;%f -> %f;%f]: %fms.", tile->box.lat0, tile->box.lon0, tile->box.lat1, tile->box.lon1, os_convert_hardware_time(end - start, Milliseconds));
 }
 
 void subdivide_tile(App *app, Tile *tile) {

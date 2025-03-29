@@ -14,6 +14,12 @@
 #define WORLD_SCALE_2D 100
 #define WORLD_SCALE_3D 10
 
+enum Log_Level {
+	LOG_Debug,
+	LOG_Warning,
+	LOG_Error,
+};
+
 enum Map_Mode {
 	MAP_MODE_2D,
 	MAP_MODE_3D,
@@ -45,3 +51,5 @@ struct App {
 
 	Tile root;
 };
+
+void log(Log_Level level, const char *format, ...);

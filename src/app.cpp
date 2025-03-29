@@ -1,3 +1,6 @@
+// --- C
+#include <stdarg.h>
+
 // --- Foundation
 #include <foundation.h>
 #include <os_specific.h>
@@ -160,7 +163,27 @@ void do_one_frame(App *app) {
 	}
 }
 
+void log(Log_Level level, const char *format, ...) {
+	const char *LOG_LEVEL_STRING[] = {
+		"DEBUG",
+		"WARN ",
+		"ERROR"
+	};
+	
+	System_Time time = os_get_system_time();
+
+	va_list args;
+	printf("[%02d:%02d:%02d][%s] ", time.hour, time.minute, time.second, LOG_LEVEL_STRING[level]);
+	va_start(args, format);
+	vprintf(format, args);
+	va_end(args);
+	printf("\n");
+}
+
 int main() {
+	Hardware_Time start = os_get_hardware_time();
+	log(LOG_Debug, "Initialization World View...");
+
 	App app;
 	os_enable_high_resolution_clock();
 	os_set_working_directory(os_get_executable_directory());
@@ -184,12 +207,25 @@ int main() {
 	subdivide_tile(&app, &app.root);
 	subdivide_tile(&app, app.root.children[0]);
 
+	Hardware_Time end = os_get_hardware_time();
+	log(LOG_Debug, "Initialization complete (%fms). Presenting...", os_convert_hardware_time(end - start, Milliseconds));
+
+	Hardware_Time last_info_dump = os_get_hardware_time();
+
 	while(!app.window.should_close) {
 		Hardware_Time frame_begin = os_get_hardware_time();
+		s64 temp_mark = mark_temp_allocator();
 
 		do_one_frame(&app);
 		draw_one_frame(&app);
 
+		if(os_convert_hardware_time(frame_begin - last_info_dump, Seconds) > 5) {
+			log(LOG_Debug, " - Internal: %fmb, Temp: %fmb, OS: %fmb, Frame: %fs", convert_to_memory_unit(app.allocator.stats.working_set, Megabytes), convert_to_memory_unit(mark_temp_allocator(), Megabytes), convert_to_memory_unit(os_get_working_set_size(), Megabytes), app.window.frame_time);
+			last_info_dump = frame_begin;
+		}
+
+		release_temp_allocator(temp_mark);
+		
 		Hardware_Time frame_end = os_get_hardware_time();
 		os_sleep_to_tick_rate(frame_begin, frame_end, FRAME_RATE);
 	}
